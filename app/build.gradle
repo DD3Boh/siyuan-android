@@ -4,7 +4,6 @@ plugins {
 
 // 多渠道打包配置已引用的方式传递
 apply from: rootProject.file('flavors.gradle')
-apply from: rootProject.file('signings.gradle')
 apply from: rootProject.file('buildRelease.gradle')
 
 // By appending the version name, build type, and a timestamp to the APK filename,
@@ -44,7 +43,6 @@ android {
     buildTypes {
         release {
             // 正式版打包时指定签名证书
-            signingConfig signingConfigs.siyuanConfig
 
             minifyEnabled true
             shrinkResources true

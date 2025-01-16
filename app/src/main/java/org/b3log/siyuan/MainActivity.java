@@ -456,11 +456,6 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
                 langCode = otherLangMap.getOrDefault(language, "en_US");
             }
 
-            if (Utils.isCnChannel(this.getPackageManager())) {
-                // Apps in Chinese mainland app stores no longer provide AI access settings https://github.com/siyuan-note/siyuan/issues/13051
-                Mobile.disableFeature("ai");
-            }
-
             Mobile.startKernel("android", appDir, workspaceBaseDir, timezone, localIPs, langCode,
                     Build.VERSION.RELEASE +
                             "/SDK " + Build.VERSION.SDK_INT +
