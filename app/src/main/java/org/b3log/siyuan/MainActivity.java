@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
     private static final int REQUEST_SELECT_FILE = 100;
     private static final int REQUEST_CAMERA = 101;
     private static final int LOCAL_SYNC_FOLDER_CODE = 200;
+    private static final int HOME_FOLDER_CODE = 201;
 
     @Override
     public void onNewIntent(final Intent intent) {
@@ -127,6 +128,12 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
         Log.i("boot", "create main activity");
 
         super.onCreate(savedInstanceState);
+
+        getStoragePermissions();
+        checkHomePath();
+    }
+
+    private void startBackend() {
         setContentView(R.layout.activity_main);
 
         // 启动 HTTP Server
@@ -185,6 +192,30 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("localSyncPath", path);
         editor.apply();
+    }
+
+    private void checkHomePath() {
+        if (getHomePath() != null)
+            startBackend();
+        else
+            pickHomeFolder();
+    }
+
+    private String getHomePath() {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        return prefs.getString("homePath", null);
+    }
+
+    private void saveHomePath(String path) {
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("homePath", path);
+        editor.apply();
+    }
+
+    private void pickHomeFolder() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        startActivityForResult(intent, HOME_FOLDER_CODE);
     }
 
     private void initUIElements() {
@@ -432,7 +463,8 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
         final String language = locale.getLanguage().toLowerCase(); // 获取语言代码
         final String script = locale.getScript().toLowerCase(); // 获取脚本代码
         final String country = locale.getCountry().toLowerCase(); // 获取国家代码
-        final String workspaceBaseDir = getExternalFilesDir(null).getAbsolutePath();
+        final String workspaceBaseDir = getHomePath() != null ?
+                getHomePath() : getExternalFilesDir(null).getAbsolutePath();
         final String timezone = TimeZone.getDefault().getID();
         new Thread(() -> {
             final String localIPs = Utils.getIPAddressList();
@@ -600,7 +632,8 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
-        if (requestCode == LOCAL_SYNC_FOLDER_CODE && resultCode == RESULT_OK) {
+        if (requestCode == LOCAL_SYNC_FOLDER_CODE || requestCode == HOME_FOLDER_CODE
+                && resultCode == RESULT_OK) {
             if (intent != null) {
                 Uri treeUri = intent.getData();
                 Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri,
@@ -609,8 +642,15 @@ public class MainActivity extends AppCompatActivity implements com.blankj.utilco
                 if (path == null || path.isEmpty())
                     Toast.makeText(this, "Error with selected directory",
                             Toast.LENGTH_LONG).show();
-                else
-                    saveLocalSyncPath(path);
+                else {
+                    if (requestCode == LOCAL_SYNC_FOLDER_CODE)
+                        saveLocalSyncPath(path);
+                    else {
+                        saveHomePath(path);
+                        checkHomePath();
+                    }
+                }
+
             }
         }
 
